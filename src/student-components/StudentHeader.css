@@ -1,0 +1,136 @@
+.student-header {
+  background-color: white;
+  border-bottom: 1px solid #e8eaed;
+  padding: 15px 25px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 80px;
+}
+
+.student-header-left {
+  flex: 0 0 auto;
+}
+
+.student-mil-csn-logo {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.student-mil-text {
+  color: #4285f4;
+}
+
+.student-csn-text {
+  color: #34a853;
+}
+
+.student-header-center {
+  flex: 1;
+  text-align: center;
+}
+
+.student-welcome-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #3c4043;
+  margin-bottom: 4px;
+}
+
+.student-roll-info {
+  font-size: 14px;
+  color: #5f6368;
+}
+
+.student-header-right {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.student-qr-code {
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #5f6368;
+}
+
+.student-qr-code:hover {
+  background-color: #e8eaed;
+}
+
+.student-user-avatar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-radius: 20px;
+  cursor: pointer;
+  color: #5f6368;
+}
+
+.student-user-avatar:hover {
+  background-color: #e8eaed;
+}
+
+@media (max-width: 768px) {
+  .student-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 15px;
+  }
+  
+  .student-header-center {
+    text-align: left;
+  }
+  
+  .student-header-right {
+    align-self: flex-end;
+  }
+}
+.student-user-info {
+  position: relative;
+}
+
+.student-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: white;
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  min-width: 150px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.student-dropdown-item {
+  width: 100%;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #3c4043;
+  transition: background-color 0.2s;
+}
+
+.student-dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.student-dropdown-item.logout-btn {
+  color: #ea4335;
+}
+
+.student-dropdown-item.logout-btn:hover {
+  background-color: #fce8e6;
+}

@@ -1,0 +1,281 @@
+.your-submissions {
+  padding: 20px;
+}
+
+.your-submissions h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #3c4043;
+  margin-bottom: 30px;
+}
+
+.search-section {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 30px;
+  margin-bottom: 30px;
+}
+
+.search-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.search-input-group {
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.subject-filter {
+  padding: 12px 16px;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+}
+
+.students-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.student-card {
+  background: white;
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  padding: 15px 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.student-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: #4285f4;
+}
+
+.student-card.expanded {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: #4285f4;
+}
+
+.student-basic-info {
+  display: grid;
+  grid-template-columns: 150px 1fr 150px 20px;
+  gap: 20px;
+  align-items: center;
+}
+
+.student-id {
+  font-weight: 600;
+  color: #3c4043;
+}
+
+.student-name {
+  color: #3c4043;
+}
+
+.student-subject {
+  color: #5f6368;
+  text-align: right;
+}
+
+.expand-icon {
+  color: #5f6368;
+  transition: transform 0.3s ease;
+}
+
+.expand-icon.rotated {
+  transform: rotate(180deg);
+}
+
+.student-marks {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #e8eaed;
+  animation: slideDown 0.3s ease;
+  display: flex;
+  gap: 30px;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mark-section {
+  flex: 1;
+}
+
+.mark-label {
+  display: block;
+  font-size: 12px;
+  color: #5f6368;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.mark-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.mark-btn {
+  padding: 6px 12px;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+  color: #5f6368;
+}
+
+.mark-btn:hover {
+  border-color: #4285f4;
+  color: #4285f4;
+}
+
+.mark-btn.pending.active {
+  background-color: #fef7e0;
+  color: #f57c00;
+  border-color: #f57c00;
+  opacity: 1;
+}
+
+.mark-btn.complete.active {
+  background-color: #4285f4;
+  color: white;
+  border-color: #4285f4;
+  opacity: 1;
+}
+
+.mark-btn.pending:not(.active) {
+  background-color: #f8f9fa;
+  color: #9aa0a6;
+  border-color: #dadce0;
+  opacity: 0.6;
+}
+
+.mark-btn.complete:not(.active) {
+  background-color: #f8f9fa;
+  color: #9aa0a6;
+  border-color: #dadce0;
+  opacity: 0.6;
+}
+
+.mark-btn.pending:not(.active):hover {
+  background-color: #fef7e0;
+  color: #f57c00;
+  border-color: #f57c00;
+  opacity: 1;
+}
+
+.mark-btn.complete:not(.active):hover {
+  background-color: #4285f4;
+  color: white;
+  border-color: #4285f4;
+  opacity: 1;
+}
+
+.no-students {
+  text-align: center;
+  padding: 40px 20px;
+  color: #5f6368;
+}
+
+.no-students p {
+  font-size: 16px;
+  margin: 0;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #5f6368;
+  font-size: 16px;
+}
+
+.snackbar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #323232;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 4px;
+  z-index: 1000;
+  animation: slideUp 0.3s ease;
+}
+
+.snackbar.success {
+  background-color: #4caf50;
+}
+
+.snackbar.error {
+  background-color: #f44336;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translate(-50%, 100%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 1024px) {
+  .search-section {
+    grid-template-columns: 1fr;
+  }
+  
+  .student-marks {
+    flex-direction: column;
+    gap: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .your-submissions {
+    padding: 15px;
+  }
+  
+  .student-basic-info {
+    grid-template-columns: 1fr 20px;
+    gap: 10px;
+  }
+  
+  .student-basic-info .student-subject {
+    display: none;
+  }
+  
+  .mark-buttons {
+    justify-content: center;
+  }
+}
