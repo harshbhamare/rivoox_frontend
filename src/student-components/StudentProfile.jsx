@@ -3,7 +3,7 @@ import { User, Mail, Phone, Hash, BookOpen, Award, GraduationCap, Save, AlertTri
 import { useStudentContext } from './StudentApp';
 import './StudentProfile.css';
 
-const API_BASE = 'rivooooox-backnd.vercel.app';
+const API_BASE = 'https://rivooooox-backnd.vercel.app';
 
 const StudentProfile = () => {
   const { studentData } = useStudentContext();

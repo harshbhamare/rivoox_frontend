@@ -18,7 +18,7 @@ const FacultyDashboard = () => {
       setLoading(true);
       try {
         // Fetch subjects assigned to this faculty
-        const subjectsRes = await fetch('rivooooox-backnd.vercel.app/api/faculty/subjects', {
+        const subjectsRes = await fetch('https://rivooooox-backnd.vercel.app/api/faculty/subjects', {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -40,7 +40,7 @@ const FacultyDashboard = () => {
         setSubjects(facultySubjects);
 
         // Fetch all students for the assigned subjects
-        const studentsRes = await fetch('rivooooox-backnd.vercel.app/api/faculty/students', {
+        const studentsRes = await fetch('https://rivooooox-backnd.vercel.app/api/faculty/students', {
           headers: { Authorization: `Bearer ${token}` }
         });
 

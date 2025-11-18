@@ -26,7 +26,7 @@ const Header = () => {
         const token = localStorage.getItem('token');
 
         // Fetch available subjects
-        const availResponse = await fetch('rivooooox-backnd.vercel.app/api/class-teacher/available-subjects', {
+        const availResponse = await fetch('https://rivooooox-backnd.vercel.app/api/class-teacher/available-subjects', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const availData = await availResponse.json();
@@ -36,7 +36,7 @@ const Header = () => {
         }
 
         // Fetch teacher's subjects
-        const subjectsResponse = await fetch('rivooooox-backnd.vercel.app/api/submissions/faculty-subjects', {
+        const subjectsResponse = await fetch('https://rivooooox-backnd.vercel.app/api/submissions/faculty-subjects', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const subjectsData = await subjectsResponse.json();
@@ -87,7 +87,7 @@ const Header = () => {
         return;
       }
 
-      const response = await fetch('rivooooox-backnd.vercel.app/api/class-teacher/availability', {
+      const response = await fetch('https://rivooooox-backnd.vercel.app/api/class-teacher/availability', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

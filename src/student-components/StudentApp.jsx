@@ -8,7 +8,7 @@ import DefaulterWork from './DefaulterWork';
 import StudentProfile from './StudentProfile';
 import './StudentApp.css';
 
-const API_BASE = 'rivooooox-backnd.vercel.app';
+const API_BASE = 'https://rivooooox-backnd.vercel.app';
 
 // Student Context
 const StudentContext = createContext();

@@ -3,7 +3,7 @@ import { Book, BookOpen, GraduationCap, Award, Eye, Star, AlertTriangle } from '
 import { useStudentContext } from './StudentApp';
 import './Subjects.css';
 
-const API_BASE = 'rivooooox-backnd.vercel.app';
+const API_BASE = 'https://rivooooox-backnd.vercel.app';
 
 const Subjects = () => {
     const [allSubjects, setAllSubjects] = useState({
