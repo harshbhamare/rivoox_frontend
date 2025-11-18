@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext, useEffect } from 'react';
+import { useState, createContext, useContext, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './Login';
 import Registration from './Registration';
@@ -201,6 +201,31 @@ const AuthWrapper = () => {
     onLogout: handleLogout
   };
 
+  // State for division
+  const [division, setDivision] = useState('');
+
+  // Fetch division for class teacher
+  useEffect(() => {
+    const fetchDivision = async () => {
+      if (user?.role === 'class_teacher') {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch('http://localhost:3000/api/class-teacher/class-info', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const data = await response.json();
+          if (data.success) {
+            setDivision(data.class.division);
+          }
+        } catch (error) {
+          console.error('Error fetching division:', error);
+        }
+      }
+    };
+
+    fetchDivision();
+  }, [user]);
+
   // 🔹 Teacher dashboard layout
   const renderTeacherDashboard = () => (
     <AppContext.Provider value={contextValue}>
@@ -213,7 +238,7 @@ const AuthWrapper = () => {
               Welcome, {user?.name || 'Faculty'}
             </h1>
             <div className="class-info">
-              <span>Class Teacher : TY-CSD-C</span>
+              <span>Class Teacher{division ? ` : ${division}` : ''}</span>
             </div>
           </div>
           <div className="content">
