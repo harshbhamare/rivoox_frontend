@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useEffect } from 'react';
 import { Upload, Download, Users, BookOpen, Edit, Search, QrCode, MoreVertical, X, Plus } from 'lucide-react';
 import { useAppContext } from './AuthWrapper';
@@ -95,6 +95,35 @@ const ManageClass = () => {
     faculties: {}
   });
   const [availableFaculties, setAvailableFaculties] = useState([]);
+
+  // Memoized handlers for theory form
+  const handleTheoryCodeChange = useCallback((e) => {
+    setTheoryForm(prev => ({ ...prev, code: e.target.value }));
+  }, []);
+
+  const handleTheoryNameChange = useCallback((e) => {
+    setTheoryForm(prev => ({ ...prev, name: e.target.value }));
+  }, []);
+
+  const handleTheoryFacultyChange = useCallback((e) => {
+    setTheoryForm(prev => ({ ...prev, faculty: e.target.value }));
+  }, []);
+
+  // Memoized handlers for practical form
+  const handlePracticalCodeChange = useCallback((e) => {
+    setPracticalForm(prev => ({ ...prev, code: e.target.value }));
+  }, []);
+
+  const handlePracticalNameChange = useCallback((e) => {
+    setPracticalForm(prev => ({ ...prev, name: e.target.value }));
+  }, []);
+
+  const handlePracticalFacultyChange = useCallback((batchName, facultyId) => {
+    setPracticalForm(prev => ({
+      ...prev,
+      faculties: { ...prev.faculties, [batchName]: facultyId }
+    }));
+  }, []);
 
   const showMessage = (message, type = 'success') => {
     setSnackbarMessage(message);
@@ -659,19 +688,19 @@ const ManageClass = () => {
                 type="text"
                 placeholder="Enter subject code"
                 value={theoryForm.code}
-                onChange={(e) => setTheoryForm(prev => ({ ...prev, code: e.target.value }))}
+                onChange={handleTheoryCodeChange}
                 aria-label="Theory subject code"
               />
               <input
                 type="text"
                 placeholder="Enter subject name"
                 value={theoryForm.name}
-                onChange={(e) => setTheoryForm(prev => ({ ...prev, name: e.target.value }))}
+                onChange={handleTheoryNameChange}
                 aria-label="Theory subject name"
               />
               <select
                 value={theoryForm.faculty}
-                onChange={(e) => setTheoryForm(prev => ({ ...prev, faculty: e.target.value }))}
+                onChange={handleTheoryFacultyChange}
                 aria-label="Select theory faculty"
               >
                 <option value="">Select faculty</option>
@@ -716,14 +745,14 @@ const ManageClass = () => {
                 type="text"
                 placeholder="Enter subject code"
                 value={practicalForm.code}
-                onChange={(e) => setPracticalForm(prev => ({ ...prev, code: e.target.value }))}
+                onChange={handlePracticalCodeChange}
                 aria-label="Practical subject code"
               />
               <input
                 type="text"
                 placeholder="Enter subject name"
                 value={practicalForm.name}
-                onChange={(e) => setPracticalForm(prev => ({ ...prev, name: e.target.value }))}
+                onChange={handlePracticalNameChange}
                 aria-label="Practical subject name"
               />
               <div className="faculty-grid">
@@ -738,10 +767,7 @@ const ManageClass = () => {
                       <select
                         id={`faculty-${batch.id}`}
                         value={practicalForm.faculties[batch.name] || ''}
-                        onChange={(e) => setPracticalForm(prev => ({
-                          ...prev,
-                          faculties: { ...prev.faculties, [batch.name]: e.target.value }
-                        }))}
+                        onChange={(e) => handlePracticalFacultyChange(batch.name, e.target.value)}
                         aria-label={`Select faculty for ${batch.name}`}
                       >
                         <option value="">Select faculty</option>
