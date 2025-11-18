@@ -18,12 +18,26 @@ const Header = () => {
   const [updatingAvailability, setUpdatingAvailability] = useState(false);
 
   const [teacherSubjects, setTeacherSubjects] = useState({ theory: [], practical: [] });
+  const [division, setDivision] = useState('');
 
   // Fetch availability status and subjects on mount
   React.useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
+
+        
+        // Fetch class/division info for class teacher
+        if (user?.role === 'class_teacher') {
+          const classInfoResponse = await fetch('https://rivooooox-backnd.vercel.app/api/class-teacher/class-info', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const classInfoData = await classInfoResponse.json();
+          if (classInfoData.success) {
+            setDivision(classInfoData.class.division);
+            console.log('Division loaded:', classInfoData.class.division);
+          }
+        }
 
         // Fetch available subjects
         const availResponse = await fetch('https://rivooooox-backnd.vercel.app/api/class-teacher/available-subjects', {
@@ -250,6 +264,14 @@ const Header = () => {
         <div className="faculty-info">
           <div className="faculty-details">
             <div className="faculty-name">{user?.name || 'User'}</div>
+                        <div className="faculty-role">
+              {formatRole(user?.role)}
+              {user?.role === 'class_teacher' && division && (
+                <span style={{ marginLeft: '8px', fontWeight: 'normal' }}>
+                  - {division}
+                </span>
+              )}
+            </div>
             <div className="faculty-role">{formatRole(user?.role)}</div>
           </div>
           <div className="user-menu-container">
