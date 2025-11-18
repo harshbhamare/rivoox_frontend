@@ -4,7 +4,7 @@ import { Upload, Download, Users, BookOpen, Edit, Search, QrCode, MoreVertical, 
 import { useAppContext } from './AuthWrapper';
 import './ManageClass.css';
 
-const API_BASE = 'http://localhost:3000'; // backend base; adjust if needed
+const API_BASE = 'rivooooox-backnd.vercel.app'; // backend base; adjust if needed
 
 const ManageClass = () => {
   const { students, setStudents, subjects, setSubjects, batches, setBatches, user } = useAppContext();

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import './Registration.css';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'rivooooox-backnd.vercel.app';
 
 const Login = ({ onLogin, onRegister }) => {
   const [isStudentLogin, setIsStudentLogin] = useState(false);

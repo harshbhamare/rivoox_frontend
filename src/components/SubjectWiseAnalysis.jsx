@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { BookOpen, Users, AlertTriangle } from 'lucide-react';
 import './SubjectWiseAnalysis.css';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'rivooooox-backnd.vercel.app';
 
 const SubjectWiseAnalysis = () => {
   const [subjects, setSubjects] = useState([]);

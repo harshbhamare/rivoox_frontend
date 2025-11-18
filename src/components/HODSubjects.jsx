@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { BookOpen, Plus, X } from 'lucide-react';
 import './HODSubjects.css';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'rivooooox-backnd.vercel.app';
 
 const HODSubjects = () => {
   const [loading, setLoading] = useState(false);

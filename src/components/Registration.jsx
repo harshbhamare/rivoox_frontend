@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import './Registration.css';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'rivooooox-backnd.vercel.app';
 
 const Registration = ({ onBack, onRegisterSuccess }) => {
   const [formData, setFormData] = useState({

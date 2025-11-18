@@ -3,7 +3,7 @@ import { User, ChevronDown, Radio, Edit, Trash2, Plus, LogOut } from 'lucide-rea
 import HODSubjects from './HODSubjects';
 import './HODDashboard.css';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'rivooooox-backnd.vercel.app';
 
 const HODDashboard = ({ user, onLogout }) => {
     const [currentView, setCurrentView] = useState('dashboard');

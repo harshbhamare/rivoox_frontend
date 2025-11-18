@@ -24,16 +24,16 @@ const Dashboard = () => {
       setLoading(true);
       try {
         const [studentsRes, batchesRes, statsRes, availabilityRes] = await Promise.all([
-          fetch('http://localhost:3000/api/class-teacher/students', {
+          fetch('rivooooox-backnd.vercel.app/api/class-teacher/students', {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          fetch('http://localhost:3000/api/class-teacher/batches', {
+          fetch('rivooooox-backnd.vercel.app/api/class-teacher/batches', {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          fetch('http://localhost:3000/api/submissions/dashboard-statistics', {
+          fetch('rivooooox-backnd.vercel.app/api/submissions/dashboard-statistics', {
             headers: { Authorization: `Bearer ${token}` }
           }),
-          fetch('http://localhost:3000/api/class-teacher/availability', {
+          fetch('rivooooox-backnd.vercel.app/api/class-teacher/availability', {
             headers: { Authorization: `Bearer ${token}` }
           })
         ]);
@@ -112,7 +112,7 @@ const Dashboard = () => {
       const token = localStorage.getItem('token');
       const newStatus = !isAvailable;
 
-      const response = await fetch('http://localhost:3000/api/class-teacher/availability', {
+      const response = await fetch('rivooooox-backnd.vercel.app/api/class-teacher/availability', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

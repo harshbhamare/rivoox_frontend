@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { User, ChevronDown, Radio, Edit, Trash2, Plus, Upload, BarChart3, Users, Settings, LogOut } from 'lucide-react';
 import './DirectorDashboard.css';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'rivooooox-backnd.vercel.app';
 
 const DirectorDashboard = ({ user, onLogout }) => {
   const [currentView, setCurrentView] = useState('dashboard');

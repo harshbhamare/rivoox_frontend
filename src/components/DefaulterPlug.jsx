@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { AlertTriangle, Plus, Link as LinkIcon, SkipForward, Trash2, ExternalLink } from 'lucide-react';
 import './DefaulterPlug.css';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'rivooooox-backnd.vercel.app';
 
 const DefaulterPlug = () => {
   const [subjects, setSubjects] = useState({ theory: [], practical: [] });
