@@ -272,7 +272,7 @@ const Header = () => {
                 </span>
               )}
             </div>
-            <div className="faculty-role">{formatRole(user?.role)}</div>
+            {/* <div className="faculty-role">{formatRole(user?.role)}</div> */}
           </div>
           <div className="user-menu-container">
             <div
