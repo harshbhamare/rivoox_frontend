@@ -1,10 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import { useEffect } from 'react';
-import { Upload, Download, Users, BookOpen, Edit, Search, QrCode, MoreVertical, X, Plus } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Upload, Download, Users, BookOpen, Edit, Search, X, Plus } from 'lucide-react';
 import { useAppContext } from './AuthWrapper';
 import './ManageClass.css';
 
-const API_BASE = 'https://rivooooox-backnd.vercel.app'; // backend base; adjust if needed
+const API_BASE = 'https://rivooooox-backnd.vercel.app';
 
 const ManageClass = () => {
   const { students, setStudents, subjects, setSubjects, batches, setBatches, user } = useAppContext();
@@ -12,14 +11,98 @@ const ManageClass = () => {
   const [showSnackbar, setShowSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [uploadedFile, setUploadedFile] = useState(null);
-  const [importedStudents, setImportedStudents] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Form states
+  const [batchForm, setBatchForm] = useState({ from: '', to: '', name: '' });
+  const [theoryForm, setTheoryForm] = useState({ code: '', name: '', faculty: '' });
+  const [practicalForm, setPracticalForm] = useState({
+    code: '',
+    name: '',
+    faculties: {}
+  });
+  const [availableFaculties, setAvailableFaculties] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // Show message function - stable reference
+  const showMessage = useCallback((message, type = 'success') => {
+    setSnackbarMessage(message);
+    setShowSnackbar(true);
+    setTimeout(() => setShowSnackbar(false), 3000);
+  }, []);
+
+  // API helpers - stable references
+  const authHeaders = useCallback(() => {
+    const token = localStorage.getItem('token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, []);
+
+  const postJSON = useCallback(async (url, body) => {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
+    return data;
+  }, [authHeaders]);
+
+  const postForm = useCallback(async (url, formData) => {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { ...authHeaders() },
+      body: formData,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
+    return data;
+  }, [authHeaders]);
+
+  // Fetch available faculties
+  const fetchAvailableFaculties = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/api/class-teacher/faculties`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setAvailableFaculties(data.faculties || []);
+      }
+    } catch (error) {
+      console.error('Error fetching faculties:', error);
+    }
+  }, []);
+
+  // Fetch subjects from backend
+  const fetchSubjects = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/api/class-teacher/subjects`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      
+      if (data.success) {
+        setSubjects({
+          theory: data.subjects.theory || [],
+          practical: data.subjects.practical || []
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching subjects:', error);
+    }
+  }, [setSubjects]);
+
+  // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsLoading(true);
         const token = localStorage.getItem('token');
 
         // Fetch students and batches concurrently
@@ -37,20 +120,6 @@ const ManageClass = () => {
           batchesRes.json(),
         ]);
 
-        if (!studentsRes.ok) {
-          const errorMsg = studentsData.error || studentsData.message || 'Failed to fetch students';
-          console.error('Students API Error:', errorMsg);
-          showMessage(errorMsg, 'error');
-          return;
-        }
-
-        if (!batchesRes.ok) {
-          const errorMsg = batchesData.error || batchesData.message || 'Failed to fetch batches';
-          console.error('Batches API Error:', errorMsg);
-          showMessage(errorMsg, 'error');
-          return;
-        }
-
         if (studentsRes.ok && batchesRes.ok) {
           // Normalize students
           const normalizedStudents = (studentsData.students || []).map((s) => ({
@@ -63,120 +132,42 @@ const ManageClass = () => {
             attendance_percent: s.attendance_percent,
             defaulter: s.defaulter,
             batch_id: s.batch_id,
-            batch_name: s.batch_name || '', // from join
+            batch_name: s.batch_name || '',
           }));
 
           setStudents(normalizedStudents);
-          setBatches(batchesData.batches || []);
+          
+          // Normalize batches
+          const normalizedBatches = (batchesData.batches || []).map((b) => ({
+            id: b.id,
+            name: b.name,
+            from: b.roll_start,
+            to: b.roll_end,
+          }));
+          
+          setBatches(normalizedBatches);
         } else {
           showMessage(
             studentsData.error ||
-            batchesData.error ||
-            'Failed to fetch data',
+              batchesData.error ||
+              'Failed to fetch data',
             'error'
           );
         }
       } catch (err) {
         showMessage(`Error fetching data: ${err.message}`, 'error');
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchData();
     fetchAvailableFaculties();
-  }, []);
+    fetchSubjects();
+  }, [setStudents, setBatches, showMessage, fetchAvailableFaculties, fetchSubjects]);
 
-
-  // Form states
-  const [batchForm, setBatchForm] = useState({ from: '', to: '', name: '' });
-  const [theoryForm, setTheoryForm] = useState({ code: '', name: '', faculty: '' });
-  const [practicalForm, setPracticalForm] = useState({
-    code: '',
-    name: '',
-    faculties: {}
-  });
-  const [availableFaculties, setAvailableFaculties] = useState([]);
-
-  // Memoized handlers for theory form
-  const handleTheoryCodeChange = useCallback((e) => {
-    setTheoryForm(prev => ({ ...prev, code: e.target.value }));
-  }, []);
-
-  const handleTheoryNameChange = useCallback((e) => {
-    setTheoryForm(prev => ({ ...prev, name: e.target.value }));
-  }, []);
-
-  const handleTheoryFacultyChange = useCallback((e) => {
-    setTheoryForm(prev => ({ ...prev, faculty: e.target.value }));
-  }, []);
-
-  // Memoized handlers for practical form
-  const handlePracticalCodeChange = useCallback((e) => {
-    setPracticalForm(prev => ({ ...prev, code: e.target.value }));
-  }, []);
-
-  const handlePracticalNameChange = useCallback((e) => {
-    setPracticalForm(prev => ({ ...prev, name: e.target.value }));
-  }, []);
-
-  const handlePracticalFacultyChange = useCallback((batchName, facultyId) => {
-    setPracticalForm(prev => ({
-      ...prev,
-      faculties: { ...prev.faculties, [batchName]: facultyId }
-    }));
-  }, []);
-
-  const showMessage = (message, type = 'success') => {
-    setSnackbarMessage(message);
-    setShowSnackbar(true);
-    setTimeout(() => setShowSnackbar(false), 3000);
-  };
-
-  const fetchAvailableFaculties = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/api/class-teacher/faculties`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
-
-      if (data.success) {
-        setAvailableFaculties(data.faculties || []);
-      }
-    } catch (error) {
-      console.error('Error fetching faculties:', error);
-    }
-  };
-
-  // ---------- API helpers ----------
-  const authHeaders = () => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
-
-  const postJSON = async (url, body) => {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
-    return data;
-  };
-
-  const postForm = async (url, formData) => {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { ...authHeaders() }, // DO NOT set Content-Type for FormData
-      body: formData,
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
-    return data;
-  };
-
-  // ---------- File upload (Import Students) ----------
-  const handleFileUpload = (event) => {
+  // File upload handlers
+  const handleFileUpload = useCallback((event) => {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -191,12 +182,11 @@ const ManageClass = () => {
     }
 
     setUploadedFile(file);
-    setImportedStudents([]); // we don’t preview row data client-side; backend parses it
     setShowPreview(true);
     showMessage('File selected. Click "Import Students & Continue".');
-  };
+  }, [showMessage]);
 
-  const uploadAndImportStudents = async () => {
+  const uploadAndImportStudents = useCallback(async () => {
     if (!uploadedFile) {
       showMessage('Select a file first.', 'error');
       return;
@@ -208,15 +198,34 @@ const ManageClass = () => {
       const data = await postForm(`${API_BASE}/api/class-teacher/import-students`, formData);
 
       showMessage(data.message || 'Import completed.');
-      // Optionally: refresh students list from backend here if needed
       setCurrentStep('batch-allocation');
+      // Refresh students list
+      const token = localStorage.getItem('token');
+      const studentsRes = await fetch(`${API_BASE}/api/class-teacher/students`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const studentsData = await studentsRes.json();
+      if (studentsRes.ok) {
+        const normalizedStudents = (studentsData.students || []).map((s) => ({
+          id: s.id,
+          name: s.name,
+          rollNumber: s.roll_no,
+          hallTicket: s.hall_ticket_number,
+          email: s.email,
+          contact: s.mobile,
+          attendance_percent: s.attendance_percent,
+          defaulter: s.defaulter,
+          batch_id: s.batch_id,
+          batch_name: s.batch_name || '',
+        }));
+        setStudents(normalizedStudents);
+      }
     } catch (err) {
       showMessage(`Import failed: ${err.message}`, 'error');
     }
-  };
+  }, [uploadedFile, showMessage, postForm, setStudents]);
 
-  const downloadFormat = () => {
-    // template MUST match backend expectation: roll_no, name, hall_ticket_number, attendance_percent
+  const downloadFormat = useCallback(() => {
     const csvContent = "roll_no,name,hall_ticket_number,attendance_percent\n1,John Doe,230101080565,82";
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -225,10 +234,10 @@ const ManageClass = () => {
     a.download = 'student_import_template.csv';
     a.click();
     window.URL.revokeObjectURL(url);
-  };
+  }, []);
 
-  // ---------- Batch operations (Create Batch via API) ----------
-  const addBatch = async () => {
+  // Batch operations
+  const addBatch = useCallback(async () => {
     const from = parseInt(batchForm.from, 10);
     const to = parseInt(batchForm.to, 10);
     const name = (batchForm.name || '').trim();
@@ -251,14 +260,12 @@ const ManageClass = () => {
         name,
         roll_start: from,
         roll_end: to,
-        faculty_id: user.id, // per your confirmation
+        faculty_id: user.id,
       };
 
       const data = await postJSON(`${API_BASE}/api/class-teacher/create-batch`, payload);
 
-      // Server returns the created batch in `data.batch`
       const created = data.batch;
-      // Normalize to existing UI structure for display
       const normalized = {
         id: created.id,
         name: created.name,
@@ -272,155 +279,121 @@ const ManageClass = () => {
     } catch (err) {
       showMessage(`Create batch failed: ${err.message}`, 'error');
     }
-  };
+  }, [batchForm, user, showMessage, postJSON, setBatches]);
 
-  const deleteBatch = (id) => {
-    // UI-only delete (you didn’t provide a delete endpoint). Keeping as-is.
+  const deleteBatch = useCallback((id) => {
     setBatches(prev => prev.filter(batch => batch.id !== id));
     showMessage('Batch deleted locally. (No backend endpoint yet.)');
-  };
+  }, [setBatches, showMessage]);
 
-  // ---------- Subject operations ----------
-  const addTheorySubject = async () => {
+  // Subject operations
+  const addTheorySubject = useCallback(async () => {
     if (!theoryForm.code || !theoryForm.name || !theoryForm.faculty) {
       showMessage('Please fill all fields', 'error');
       return;
     }
 
-    // Get class_id from token
-    const token = localStorage.getItem('token');
-    if (!token) {
-      showMessage('Please login again', 'error');
-      return;
-    }
-
-    // Decode token to get class_id
-    const tokenData = JSON.parse(atob(token.split('.')[1]));
-    console.log('Token data:', tokenData);
-
-    if (!tokenData.class_id) {
-      showMessage('Missing class information. Please contact admin.', 'error');
+    if (!user?.class_id) {
+      showMessage('Class ID not found. Please contact administrator.', 'error');
       return;
     }
 
     try {
       const payload = {
-        class_id: tokenData.class_id,
+        class_id: user.class_id,
         subject_code: theoryForm.code,
         subject_name: theoryForm.name,
         type: 'theory',
         faculty_id: theoryForm.faculty
       };
 
-      console.log('Theory subject payload:', payload);
-
       const data = await postJSON(`${API_BASE}/api/class-teacher/subjects/assign`, payload);
-
-      // Add to local state for display
-      const facultyName = availableFaculties.find(f => f.id === theoryForm.faculty)?.name || 'Unknown';
-      const newSubject = {
-        id: data.subject?.id || Date.now(),
-        code: theoryForm.code,
-        name: theoryForm.name,
-        faculty: facultyName
-      };
-
-      setSubjects(prev => ({
-        ...prev,
-        theory: [...prev.theory, newSubject]
-      }));
-
+      
+      // Refresh subjects from backend
+      await fetchSubjects();
+      
       setTheoryForm({ code: '', name: '', faculty: '' });
-      showMessage('Theory subject added successfully!');
+      showMessage(data.message || 'Theory subject added successfully!');
     } catch (err) {
       showMessage(`Failed to add theory subject: ${err.message}`, 'error');
     }
-  };
+  }, [theoryForm, showMessage, postJSON, fetchSubjects, user]);
 
-  const addPracticalSubject = async () => {
+  const addPracticalSubject = useCallback(async () => {
     if (!practicalForm.code || !practicalForm.name) {
       showMessage('Please fill subject code and name', 'error');
       return;
     }
 
-    // Get class_id from token
-    const token = localStorage.getItem('token');
-    if (!token) {
-      showMessage('Please login again', 'error');
-      return;
-    }
-
-    // Decode token to get class_id
-    const tokenData = JSON.parse(atob(token.split('.')[1]));
-    console.log('Token data:', tokenData);
-
-    if (!tokenData.class_id) {
-      showMessage('Missing class information. Please contact admin.', 'error');
-      return;
-    }
-
-    // Check if all batches have faculty assigned
-    const facultyAssignments = Object.entries(practicalForm.faculties)
-      .filter(([_, facultyId]) => facultyId)
-      .map(([batchName, facultyId]) => {
-        const batch = batches.find(b => b.name === batchName);
-        return {
-          batch_id: batch?.id,
-          faculty_id: facultyId
-        };
-      });
-
-    if (facultyAssignments.length === 0) {
-      showMessage('Please assign at least one faculty to a batch', 'error');
+    if (!user?.class_id) {
+      showMessage('Class ID not found. Please contact administrator.', 'error');
       return;
     }
 
     try {
+      // Build faculty_assignments array from form data
+      const facultyAssignments = Object.entries(practicalForm.faculties)
+        .filter(([_, facultyId]) => facultyId)
+        .map(([batchName, facultyId]) => {
+          const batch = batches.find(b => b.name === batchName);
+          return {
+            batch_id: batch?.id,
+            faculty_id: facultyId
+          };
+        })
+        .filter(fa => fa.batch_id && fa.faculty_id);
+
+      if (facultyAssignments.length === 0) {
+        showMessage('Please assign at least one faculty to a batch', 'error');
+        return;
+      }
+
       const payload = {
-        class_id: tokenData.class_id,
+        class_id: user.class_id,
         subject_code: practicalForm.code,
         subject_name: practicalForm.name,
         type: 'practical',
         faculty_assignments: facultyAssignments
       };
 
-      console.log('Practical subject payload:', payload);
-
       const data = await postJSON(`${API_BASE}/api/class-teacher/subjects/assign`, payload);
 
-      // Add to local state for display
-      const newSubject = {
-        id: data.subject?.id || Date.now(),
-        code: practicalForm.code,
-        name: practicalForm.name,
-        faculties: { ...practicalForm.faculties }
-      };
-
-      setSubjects(prev => ({
-        ...prev,
-        practical: [...prev.practical, newSubject]
-      }));
-
+      // Refresh subjects from backend
+      await fetchSubjects();
+      
       setPracticalForm({
         code: '',
         name: '',
         faculties: {}
       });
-      showMessage('Practical subject added successfully!');
+      showMessage(data.message || 'Practical subject added successfully!');
     } catch (err) {
       showMessage(`Failed to add practical subject: ${err.message}`, 'error');
     }
-  };
+  }, [practicalForm, batches, showMessage, postJSON, fetchSubjects, user]);
 
-  const deleteSubject = (id, type) => {
-    setSubjects(prev => ({
-      ...prev,
-      [type]: prev[type].filter(subject => subject.id !== id)
-    }));
-    showMessage('Subject deleted successfully!');
-  };
+  const deleteSubject = useCallback(async (id, type) => {
+    if (!window.confirm('Are you sure you want to delete this subject?')) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/class-teacher/subjects/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message);
 
-  const updateStudent = async (updatedStudent) => {
+      // Refresh subjects from backend
+      await fetchSubjects();
+      showMessage('Subject deleted successfully!');
+    } catch (err) {
+      showMessage(`Delete failed: ${err.message}`, 'error');
+    }
+  }, [showMessage, fetchSubjects]);
+
+  // Student operations
+  const updateStudent = useCallback(async (updatedStudent) => {
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE}/api/class-teacher/student/${updatedStudent.id}`, {
@@ -436,30 +409,41 @@ const ManageClass = () => {
           mobile: updatedStudent.contact,
           attendance_percent: updatedStudent.attendance_percent || 0,
           hall_ticket_number: updatedStudent.hallTicket,
-          batch_id:
-            batches.find((b) => b.name === updatedStudent.batch_name)?.id || null,
+          batch_id: batches.find((b) => b.name === updatedStudent.batch_name)?.id || null,
           defaulter: updatedStudent.defaulter || false,
-          electiveSelections: updatedStudent.electiveSelections || null
         }),
-
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.message);
 
       setStudents((prev) =>
-        prev.map((s) => (s.id === updatedStudent.id ? data.student : s))
+        prev.map((s) => {
+          if (s.id === updatedStudent.id) {
+            return {
+              ...s,
+              name: data.student.name,
+              rollNumber: data.student.roll_no,
+              email: data.student.email,
+              contact: data.student.mobile,
+              attendance_percent: data.student.attendance_percent,
+              hallTicket: data.student.hall_ticket_number,
+              batch_id: data.student.batch_id,
+              defaulter: data.student.defaulter,
+            };
+          }
+          return s;
+        })
       );
-
 
       setEditingStudent(null);
       showMessage('Student updated successfully!');
     } catch (err) {
       showMessage(`Update failed: ${err.message}`, 'error');
     }
-  };
+  }, [batches, setStudents, showMessage]);
 
-  const deleteStudent = async (id) => {
+  const deleteStudent = useCallback(async (id) => {
     if (!window.confirm('Are you sure you want to delete this student?')) return;
     try {
       const token = localStorage.getItem('token');
@@ -475,51 +459,74 @@ const ManageClass = () => {
     } catch (err) {
       showMessage(`Delete failed: ${err.message}`, 'error');
     }
-  };
+  }, [setStudents, showMessage]);
 
-  // Filter students for search (UI-only list)
-  const filteredStudents = students.filter(student =>
-    (student.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (student.rollNumber || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter students for search
+  const filteredStudents = useMemo(() => {
+    return students.filter(student =>
+      (student.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (student.rollNumber || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [students, searchTerm]);
 
-  // ---------- UI Sections ----------
-  const ActionCards = () => (
+  // Memoized form handlers to prevent re-renders
+  const handleTheoryFormChange = useCallback((field, value) => {
+    setTheoryForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handlePracticalFormChange = useCallback((field, value) => {
+    setPracticalForm(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handlePracticalFacultyChange = useCallback((batchName, facultyId) => {
+    setPracticalForm(prev => ({
+      ...prev,
+      faculties: { ...prev.faculties, [batchName]: facultyId }
+    }));
+  }, []);
+
+  // Stable click handlers for action cards
+  const handleStepChange = useCallback((step) => {
+    setCurrentStep(step);
+  }, []);
+
+  // UI Components - Memoized to prevent unnecessary re-renders
+  const ActionCards = useMemo(() => (
     <div className="action-cards">
-      <div className={`action-card ${currentStep === 'import' ? 'active' : ''}`} onClick={() => setCurrentStep('import')}>
+      <div className={`action-card ${currentStep === 'import' ? 'active' : ''}`} onClick={() => handleStepChange('import')}>
         <div className="card-header">
           <span>Import Students Data</span>
           <Upload size={20} />
         </div>
       </div>
 
-      <div className={`action-card ${currentStep === 'subjects' ? 'active' : ''}`} onClick={() => setCurrentStep('subjects')}>
+      <div className={`action-card ${currentStep === 'subjects' ? 'active' : ''}`} onClick={() => handleStepChange('subjects')}>
         <div className="card-header">
           <span>Faculty Subject Allotment</span>
           <BookOpen size={20} />
         </div>
       </div>
 
-      <div className={`action-card ${currentStep === 'edit-profile' ? 'active' : ''}`} onClick={() => setCurrentStep('edit-profile')}>
+      <div className={`action-card ${currentStep === 'edit-profile' ? 'active' : ''}`} onClick={() => handleStepChange('edit-profile')}>
         <div className="card-header">
           <span>Edit Student Profile</span>
           <Edit size={20} />
         </div>
       </div>
     </div>
-  );
+  ), [currentStep, handleStepChange]);
 
-  const MainView = () => (
+  const MainView = useMemo(() => (
     <div className="manage-class-main">
       <h2>Manage Class</h2>
-      <ActionCards />
+      {ActionCards}
     </div>
-  );
+  ), [ActionCards]);
 
-  const ImportStudentsView = () => (
+  const ImportStudentsView = useMemo(() => (
     <div className="import-students">
       <h2>Manage Class</h2>
-      <ActionCards />
+      {ActionCards}
 
       <div className="bulk-upload-section">
         <div className="section-header">
@@ -561,7 +568,7 @@ const ManageClass = () => {
         {showPreview && (
           <div className="preview-section">
             <h4>Ready to Import</h4>
-            <p>We’ll parse the file on the server and insert students for your class.</p>
+            <p>We'll parse the file on the server and insert students for your class.</p>
             <button className="next-btn" onClick={uploadAndImportStudents}>
               Import Students & Continue
             </button>
@@ -569,12 +576,12 @@ const ManageClass = () => {
         )}
       </div>
     </div>
-  );
+  ), [ActionCards, uploadedFile, showPreview, handleFileUpload, downloadFormat, uploadAndImportStudents]);
 
-  const BatchAllocationView = () => (
+  const BatchAllocationView = useMemo(() => (
     <div className="batch-allocation">
       <h2>Manage Class</h2>
-      <ActionCards />
+      {ActionCards}
 
       <div className="batch-section">
         <div className="section-header">
@@ -639,12 +646,12 @@ const ManageClass = () => {
         </button>
       </div>
     </div>
-  );
+  ), [ActionCards, batchForm, batches, addBatch, deleteBatch]);
 
-  const SuccessView = () => (
+  const SuccessView = useMemo(() => (
     <div className="success-view">
       <h2>Manage Class</h2>
-      <ActionCards />
+      {ActionCards}
 
       <div className="success-section">
         <div className="section-header">
@@ -668,15 +675,17 @@ const ManageClass = () => {
         </div>
       </div>
     </div>
-  );
+  ), [ActionCards]);
 
-  const SubjectsView = () => (
+  // Render SubjectsView directly without memoization to ensure inputs maintain focus
+  const renderSubjectsView = () => (
     <div className="subjects-view">
       <h2>Manage Class</h2>
-      <ActionCards />
+      {ActionCards}
 
       <div className="subjects-section">
         <div className="subjects-grid">
+          {/* Theory Subject Form */}
           <div className="subject-form">
             <div className="form-header">
               <BookOpen size={20} />
@@ -686,24 +695,23 @@ const ManageClass = () => {
             <div className="form-fields">
               <input
                 type="text"
-                placeholder="Enter subject code"
+                placeholder="Subject Code"
                 value={theoryForm.code}
-                onChange={handleTheoryCodeChange}
-                aria-label="Theory subject code"
+                onChange={(e) => handleTheoryFormChange('code', e.target.value)}
+                autoComplete="off"
               />
               <input
                 type="text"
-                placeholder="Enter subject name"
+                placeholder="Subject Name"
                 value={theoryForm.name}
-                onChange={handleTheoryNameChange}
-                aria-label="Theory subject name"
+                onChange={(e) => handleTheoryFormChange('name', e.target.value)}
+                autoComplete="off"
               />
               <select
                 value={theoryForm.faculty}
-                onChange={handleTheoryFacultyChange}
-                aria-label="Select theory faculty"
+                onChange={(e) => handleTheoryFormChange('faculty', e.target.value)}
               >
-                <option value="">Select faculty</option>
+                <option value="">Select Faculty</option>
                 {availableFaculties.map(faculty => (
                   <option key={faculty.id} value={faculty.id}>
                     {faculty.name}
@@ -716,7 +724,7 @@ const ManageClass = () => {
             </div>
 
             <div className="subjects-list">
-              {subjects.theory.map(subject => (
+              {(subjects.theory || []).map(subject => (
                 <div key={subject.id} className="subject-card">
                   <div className="subject-info">
                     <span className="subject-code">{subject.code}</span>
@@ -734,6 +742,7 @@ const ManageClass = () => {
             </div>
           </div>
 
+          {/* Practical Subject Form */}
           <div className="subject-form">
             <div className="form-header">
               <BookOpen size={20} />
@@ -743,34 +752,33 @@ const ManageClass = () => {
             <div className="form-fields">
               <input
                 type="text"
-                placeholder="Enter subject code"
+                placeholder="Subject Code"
                 value={practicalForm.code}
-                onChange={handlePracticalCodeChange}
-                aria-label="Practical subject code"
+                onChange={(e) => handlePracticalFormChange('code', e.target.value)}
+                autoComplete="off"
               />
               <input
                 type="text"
-                placeholder="Enter subject name"
+                placeholder="Subject Name"
                 value={practicalForm.name}
-                onChange={handlePracticalNameChange}
-                aria-label="Practical subject name"
+                onChange={(e) => handlePracticalFormChange('name', e.target.value)}
+                autoComplete="off"
               />
+              
               <div className="faculty-grid">
                 {batches.length === 0 ? (
-                  <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                  <p style={{ textAlign: 'center', color: '#666', padding: '20px', gridColumn: '1 / -1' }}>
                     No batches available. Please create batches first.
                   </p>
                 ) : (
                   batches.map(batch => (
                     <div key={batch.id} className="faculty-input">
-                      <label htmlFor={`faculty-${batch.id}`}>{batch.name}</label>
+                      <label>{batch.name}</label>
                       <select
-                        id={`faculty-${batch.id}`}
                         value={practicalForm.faculties[batch.name] || ''}
                         onChange={(e) => handlePracticalFacultyChange(batch.name, e.target.value)}
-                        aria-label={`Select faculty for ${batch.name}`}
                       >
-                        <option value="">Select faculty</option>
+                        <option value="">Select Faculty</option>
                         {availableFaculties.map(faculty => (
                           <option key={faculty.id} value={faculty.id}>
                             {faculty.name}
@@ -781,18 +789,29 @@ const ManageClass = () => {
                   ))
                 )}
               </div>
+              
               <button className="add-subject-btn" onClick={addPracticalSubject}>
                 Add Subject
               </button>
             </div>
 
             <div className="subjects-list">
-              {subjects.practical.map(subject => (
+              {(subjects.practical || []).map(subject => (
                 <div key={subject.id} className="subject-card">
                   <div className="subject-info">
                     <span className="subject-code">{subject.code}</span>
                     <span className="subject-name">{subject.name}</span>
-                    <span className="faculty-name">Multiple Faculties</span>
+                    <div className="faculty-batches">
+                      {Object.keys(subject.faculties || {}).length > 0 ? (
+                        Object.entries(subject.faculties || {}).map(([batchName, facultyName]) => (
+                          <span key={batchName} className="faculty-batch-item">
+                            {batchName}: {facultyName}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="faculty-name">No batches assigned</span>
+                      )}
+                    </div>
                   </div>
                   <button
                     className="delete-btn"
@@ -804,16 +823,15 @@ const ManageClass = () => {
               ))}
             </div>
           </div>
-
         </div>
       </div>
     </div>
   );
 
-  const EditProfileView = () => (
+  const EditProfileView = useMemo(() => (
     <div className="edit-profile-view">
       <h2>Manage Class</h2>
-      <ActionCards />
+      {ActionCards}
 
       <div className="search-section">
         <div className="search-input-group">
@@ -834,7 +852,7 @@ const ManageClass = () => {
             <div className="student-info">
               <h4>{student.name}</h4>
               <p>Roll: {student.rollNumber}</p>
-              <p>Batch: {student.batch}</p>
+              <p>Batch: {student.batch_name || 'Not assigned'}</p>
             </div>
             <div className="student-actions">
               <button
@@ -861,315 +879,33 @@ const ManageClass = () => {
           student={editingStudent}
           onSave={updateStudent}
           onClose={() => setEditingStudent(null)}
+          batches={batches}
         />
       )}
     </div>
-  );
-
-  const StudentEditModal = ({ student, onSave, onClose }) => {
-    const [formData, setFormData] = useState({ ...student });
-    const [electiveSubjects, setElectiveSubjects] = useState({ mdm: [], oe: [], pe: [] });
-    const [studentSelections, setStudentSelections] = useState({
-      mdm_id: '',
-      oe_id: '',
-      pe_id: '',
-      mdm_faculty_id: '',
-      oe_faculty_id: '',
-      pe_faculty_id: ''
-    });
-    const [loadingElectives, setLoadingElectives] = useState(true);
-
-    // Fetch student's elective selections and available subjects
-    useEffect(() => {
-      const fetchElectives = async () => {
-        try {
-          const token = localStorage.getItem('token');
-          
-          // Fetch available elective subjects for the student's class
-          const response = await fetch(`${API_BASE}/api/class-teacher/elective-subjects/${student.id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          
-          const data = await response.json();
-          if (data.success) {
-            setElectiveSubjects(data.electives || { mdm: [], oe: [], pe: [] });
-            setStudentSelections(data.currentSelections || {});
-          }
-        } catch (error) {
-          console.error('Error fetching electives:', error);
-        } finally {
-          setLoadingElectives(false);
-        }
-      };
-
-      fetchElectives();
-    }, [student.id]);
-
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      onSave({ ...formData, electiveSelections: studentSelections });
-    };
-
-    const getFacultyOptions = (type) => {
-      const subjectId = studentSelections[`${type}_id`];
-      if (!subjectId) return [];
-      
-      const subject = electiveSubjects[type]?.find(s => s.id === subjectId);
-      return subject ? subject.faculties : [];
-    };
-
-    return (
-      <div className="modal-overlay">
-        <div className="modal-content">
-          <div className="modal-header">
-            <h3>Edit Student Profile</h3>
-            <button className="close-btn" onClick={onClose}>
-              <X size={20} />
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="student-form">
-            <div className="form-row">
-              <div className="form-group">
-                <label>Name</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Roll Number</label>
-                <input
-                  type="text"
-                  value={formData.rollNumber}
-                  onChange={(e) => setFormData(prev => ({ ...prev, rollNumber: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Hall Ticket</label>
-                <input
-                  type="text"
-                  value={formData.hallTicket}
-                  onChange={(e) => setFormData(prev => ({ ...prev, hallTicket: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Contact</label>
-                <input
-                  type="text"
-                  value={formData.contact}
-                  onChange={(e) => setFormData(prev => ({ ...prev, contact: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Batch</label>
-                <select
-                  value={formData.batch_name || ''}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      batch_name: e.target.value,
-                    }))
-                  }
-                >
-                  <option value="">Select Batch</option>
-                  {batches.map((batch) => (
-                    <option key={batch.id} value={batch.name}>
-                      {batch.name}
-                    </option>
-                  ))}
-                </select>
-
-              </div>
-            </div>
-
-            {/* Elective Subjects Section */}
-            <div className="form-section">
-              <h4 style={{ marginTop: '20px', marginBottom: '15px', color: '#3c4043' }}>
-                Elective Subjects
-              </h4>
-              
-              {loadingElectives ? (
-                <p style={{ color: '#5f6368', fontSize: '14px' }}>Loading elective subjects...</p>
-              ) : (
-                <>
-                  {/* MDM */}
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Multidisciplinary Minor (MDM)</label>
-                      <select
-                        value={studentSelections.mdm_id || ''}
-                        onChange={(e) => setStudentSelections(prev => ({ 
-                          ...prev, 
-                          mdm_id: e.target.value,
-                          mdm_faculty_id: '' 
-                        }))}
-                      >
-                        <option value="">Select MDM Subject</option>
-                        {electiveSubjects.mdm?.map((subject) => (
-                          <option key={subject.id} value={subject.id}>
-                            {subject.code} - {subject.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>MDM Faculty</label>
-                      <select
-                        value={studentSelections.mdm_faculty_id || ''}
-                        onChange={(e) => setStudentSelections(prev => ({ 
-                          ...prev, 
-                          mdm_faculty_id: e.target.value 
-                        }))}
-                        disabled={!studentSelections.mdm_id}
-                      >
-                        <option value="">Select Faculty</option>
-                        {getFacultyOptions('mdm').map((faculty) => (
-                          <option key={faculty.id} value={faculty.id}>
-                            {faculty.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* OE */}
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Open Elective (OE)</label>
-                      <select
-                        value={studentSelections.oe_id || ''}
-                        onChange={(e) => setStudentSelections(prev => ({ 
-                          ...prev, 
-                          oe_id: e.target.value,
-                          oe_faculty_id: '' 
-                        }))}
-                      >
-                        <option value="">Select OE Subject</option>
-                        {electiveSubjects.oe?.map((subject) => (
-                          <option key={subject.id} value={subject.id}>
-                            {subject.code} - {subject.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>OE Faculty</label>
-                      <select
-                        value={studentSelections.oe_faculty_id || ''}
-                        onChange={(e) => setStudentSelections(prev => ({ 
-                          ...prev, 
-                          oe_faculty_id: e.target.value 
-                        }))}
-                        disabled={!studentSelections.oe_id}
-                      >
-                        <option value="">Select Faculty</option>
-                        {getFacultyOptions('oe').map((faculty) => (
-                          <option key={faculty.id} value={faculty.id}>
-                            {faculty.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* PE */}
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Professional Elective (PE)</label>
-                      <select
-                        value={studentSelections.pe_id || ''}
-                        onChange={(e) => setStudentSelections(prev => ({ 
-                          ...prev, 
-                          pe_id: e.target.value,
-                          pe_faculty_id: '' 
-                        }))}
-                      >
-                        <option value="">Select PE Subject</option>
-                        {electiveSubjects.pe?.map((subject) => (
-                          <option key={subject.id} value={subject.id}>
-                            {subject.code} - {subject.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>PE Faculty</label>
-                      <select
-                        value={studentSelections.pe_faculty_id || ''}
-                        onChange={(e) => setStudentSelections(prev => ({ 
-                          ...prev, 
-                          pe_faculty_id: e.target.value 
-                        }))}
-                        disabled={!studentSelections.pe_id}
-                      >
-                        <option value="">Select Faculty</option>
-                        {getFacultyOptions('pe').map((faculty) => (
-                          <option key={faculty.id} value={faculty.id}>
-                            {faculty.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="form-actions">
-              <button type="button" className="cancel-btn" onClick={onClose}>
-                Cancel
-              </button>
-              <button type="submit" className="save-btn">
-                Save Changes
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
+  ), [ActionCards, searchTerm, filteredStudents, editingStudent, batches, deleteStudent, updateStudent]);
 
   const renderCurrentView = () => {
     switch (currentStep) {
       case 'import':
-        return <ImportStudentsView />;
+        return ImportStudentsView;
       case 'batch-allocation':
-        return <BatchAllocationView />;
+        return BatchAllocationView;
       case 'success':
-        return <SuccessView />;
+        return SuccessView;
       case 'subjects':
-        return <SubjectsView />;
+        return renderSubjectsView();
       case 'edit-profile':
-        return <EditProfileView />;
+        return EditProfileView;
       default:
-        return <MainView />;
+        return MainView;
     }
   };
 
   return (
     <div className="manage-class">
-      {renderCurrentView()}
+      {isLoading && <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>}
+      {!isLoading && renderCurrentView()}
 
       {showSnackbar && (
         <div className={`snackbar ${snackbarMessage.toLowerCase().includes('fail') || snackbarMessage.toLowerCase().includes('error') ? 'error' : 'success'}`}>
@@ -1180,5 +916,287 @@ const ManageClass = () => {
   );
 };
 
+// Student Edit Modal Component
+const StudentEditModal = React.memo(({ student, onSave, onClose, batches }) => {
+  const [formData, setFormData] = useState({ ...student });
+  const [electiveSubjects, setElectiveSubjects] = useState({ mdm: [], oe: [], pe: [] });
+  const [studentSelections, setStudentSelections] = useState({
+    mdm_id: '',
+    oe_id: '',
+    pe_id: '',
+    mdm_faculty_id: '',
+    oe_faculty_id: '',
+    pe_faculty_id: ''
+  });
+  const [loadingElectives, setLoadingElectives] = useState(true);
+
+  // Fetch student's elective selections and available subjects
+  useEffect(() => {
+    const fetchElectives = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        
+        // Fetch available elective subjects for the student's class
+        const response = await fetch(`${API_BASE}/api/class-teacher/elective-subjects/${student.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          setElectiveSubjects(data.electives || { mdm: [], oe: [], pe: [] });
+          setStudentSelections(data.currentSelections || {});
+        }
+      } catch (error) {
+        console.error('Error fetching electives:', error);
+      } finally {
+        setLoadingElectives(false);
+      }
+    };
+
+    fetchElectives();
+  }, [student.id]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave({ ...formData, electiveSelections: studentSelections });
+  };
+
+  const handleChange = useCallback((field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const getFacultyOptions = (type) => {
+    const subjectId = studentSelections[`${type}_id`];
+    if (!subjectId) return [];
+    
+    const subject = electiveSubjects[type]?.find(s => s.id === subjectId);
+    return subject ? subject.faculties : [];
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>Edit Student Profile</h3>
+          <button className="close-btn" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="student-form">
+          <div className="form-row">
+            <div className="form-group">
+              <label>Name</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Roll Number</label>
+              <input
+                type="text"
+                value={formData.rollNumber}
+                onChange={(e) => handleChange('rollNumber', e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Hall Ticket</label>
+              <input
+                type="text"
+                value={formData.hallTicket}
+                onChange={(e) => handleChange('hallTicket', e.target.value)}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Email</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleChange('email', e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>Contact</label>
+              <input
+                type="text"
+                value={formData.contact}
+                onChange={(e) => handleChange('contact', e.target.value)}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Batch</label>
+              <select
+                value={formData.batch_name || ''}
+                onChange={(e) => handleChange('batch_name', e.target.value)}
+              >
+                <option value="">Select Batch</option>
+                {batches.map((batch) => (
+                  <option key={batch.id} value={batch.name}>
+                    {batch.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Elective Subjects Section */}
+          <div className="form-section">
+            <h4 style={{ marginTop: '20px', marginBottom: '15px', color: '#3c4043' }}>
+              Elective Subjects
+            </h4>
+            
+            {loadingElectives ? (
+              <p style={{ color: '#5f6368', fontSize: '14px' }}>Loading elective subjects...</p>
+            ) : (
+              <>
+                {/* MDM */}
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Multidisciplinary Minor (MDM)</label>
+                    <select
+                      value={studentSelections.mdm_id || ''}
+                      onChange={(e) => setStudentSelections(prev => ({ 
+                        ...prev, 
+                        mdm_id: e.target.value,
+                        mdm_faculty_id: '' 
+                      }))}
+                    >
+                      <option value="">Select MDM Subject</option>
+                      {electiveSubjects.mdm?.map((subject) => (
+                        <option key={subject.id} value={subject.id}>
+                          {subject.code} - {subject.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>MDM Faculty</label>
+                    <select
+                      value={studentSelections.mdm_faculty_id || ''}
+                      onChange={(e) => setStudentSelections(prev => ({ 
+                        ...prev, 
+                        mdm_faculty_id: e.target.value 
+                      }))}
+                      disabled={!studentSelections.mdm_id}
+                    >
+                      <option value="">Select Faculty</option>
+                      {getFacultyOptions('mdm').map((faculty) => (
+                        <option key={faculty.id} value={faculty.id}>
+                          {faculty.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* OE */}
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Open Elective (OE)</label>
+                    <select
+                      value={studentSelections.oe_id || ''}
+                      onChange={(e) => setStudentSelections(prev => ({ 
+                        ...prev, 
+                        oe_id: e.target.value,
+                        oe_faculty_id: '' 
+                      }))}
+                    >
+                      <option value="">Select OE Subject</option>
+                      {electiveSubjects.oe?.map((subject) => (
+                        <option key={subject.id} value={subject.id}>
+                          {subject.code} - {subject.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>OE Faculty</label>
+                    <select
+                      value={studentSelections.oe_faculty_id || ''}
+                      onChange={(e) => setStudentSelections(prev => ({ 
+                        ...prev, 
+                        oe_faculty_id: e.target.value 
+                      }))}
+                      disabled={!studentSelections.oe_id}
+                    >
+                      <option value="">Select Faculty</option>
+                      {getFacultyOptions('oe').map((faculty) => (
+                        <option key={faculty.id} value={faculty.id}>
+                          {faculty.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* PE */}
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Professional Elective (PE)</label>
+                    <select
+                      value={studentSelections.pe_id || ''}
+                      onChange={(e) => setStudentSelections(prev => ({ 
+                        ...prev, 
+                        pe_id: e.target.value,
+                        pe_faculty_id: '' 
+                      }))}
+                    >
+                      <option value="">Select PE Subject</option>
+                      {electiveSubjects.pe?.map((subject) => (
+                        <option key={subject.id} value={subject.id}>
+                          {subject.code} - {subject.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>PE Faculty</label>
+                    <select
+                      value={studentSelections.pe_faculty_id || ''}
+                      onChange={(e) => setStudentSelections(prev => ({ 
+                        ...prev, 
+                        pe_faculty_id: e.target.value 
+                      }))}
+                      disabled={!studentSelections.pe_id}
+                    >
+                      <option value="">Select Faculty</option>
+                      {getFacultyOptions('pe').map((faculty) => (
+                        <option key={faculty.id} value={faculty.id}>
+                          {faculty.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="form-actions">
+            <button type="button" className="cancel-btn" onClick={onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="save-btn">
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+});
 
 export default ManageClass;
