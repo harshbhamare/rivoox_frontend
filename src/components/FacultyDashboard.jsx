@@ -52,29 +52,45 @@ const FacultyDashboard = () => {
           throw new Error(errorMsg);
         }
 
-        setStudents(
-          (studentsJson.students || []).map(s => ({
-            id: s.id,
-            name: s.name,
-            rollNumber: s.roll_no,
-            hallTicket: s.hall_ticket_number,
-            email: s.email,
-            contact: s.mobile,
-            batch_id: s.batch_id,
-            batch_name: s.batch_name,
-            subject_id: s.subject_id,
-            subject_name: s.subject_name,
-            subject_code: s.subject_code,
-            submissions: {
-              ta: 'pending',
-              cie: 'pending',
-              defaulter: s.defaulter ? 'complete' : 'pending'
-            },
-            attendance_percent: s.attendance_percent,
-            class_id: s.class_id,
-            created_at: s.created_at
-          }))
-        );
+        console.log('📊 Raw students data from API:', studentsJson.students?.slice(0, 2));
+
+        const mappedStudents = (studentsJson.students || []).map(s => ({
+          id: s.id,
+          name: s.name,
+          rollNumber: s.roll_no,
+          hallTicket: s.hall_ticket_number,
+          email: s.email,
+          contact: s.mobile,
+          batch_id: s.batch_id,
+          batch_name: s.batch_name,
+          subject_id: s.subject_id,
+          subject_name: s.subject_name,
+          subject_code: s.subject_code,
+          subject_type: s.subject_type,
+          defaulter: s.defaulter,
+          ta_status: s.ta_status || 'pending',
+          cie_status: s.cie_status || 'pending',
+          defaulter_status: s.defaulter_status || 'pending',
+          submission_percentage: s.submission_percentage || 0,
+          total_submissions: s.total_submissions || 0,
+          completed_submissions: s.completed_submissions || 0,
+          attendance_percent: s.attendance_percent,
+          class_id: s.class_id,
+          created_at: s.created_at
+        }));
+
+        console.log('📊 Mapped students with percentages:', mappedStudents.slice(0, 2));
+        
+        // Log students with non-zero percentages
+        const studentsWithPercentage = mappedStudents.filter(s => s.submission_percentage > 0);
+        console.log('📊 Students with non-zero percentage:', studentsWithPercentage.length);
+        console.log('📊 Sample students with percentage:', studentsWithPercentage.slice(0, 5).map(s => ({
+          name: s.name,
+          subject: s.subject_name,
+          percentage: s.submission_percentage
+        })));
+        
+        setStudents(mappedStudents);
 
       } catch (e) {
         console.error(e);
@@ -87,36 +103,70 @@ const FacultyDashboard = () => {
     fetchData();
   }, [setStudents]);
 
+  // Helper function to get submission percentage for a student (pre-calculated by backend)
+  const calculateSubmissionPercentage = (student) => {
+    // Backend already calculated the percentage based on:
+    // - Practical: TA only = 1 submission
+    // - Theory: CIE + TA = 2 submissions (+ Defaulter if defaulter = 3)
+    return student.submission_percentage || 0;
+  };
+
   // --- Analysis cards ---
   const analysisData = useMemo(() => {
     const total = students.length;
 
+    if (total === 0) {
+      return [
+        { title: 'Overall Class Analysis', percentage: 0, subtitle: 'Submission' },
+        { title: 'Self Taught Subject Analysis', percentage: 0, subtitle: 'Submission Marked' },
+        { title: 'Defaulters Analysis', percentage: 0, subtitle: 'Defaulter Work Submitted' }
+      ];
+    }
+
+    // Calculate average submission percentage across all students (using pre-calculated values)
+    const totalPercentage = students.reduce((sum, student) => {
+      return sum + (student.submission_percentage || 0);
+    }, 0);
+    const overallPercentage = Math.round(totalPercentage / total);
+
+    // Count students who have submitted at least one submission
     const submittedCount = students.filter(s =>
-      s.submissions.ta === 'complete' || s.submissions.cie === 'complete'
+      s.ta_status === 'completed' || s.cie_status === 'completed'
     ).length;
 
-    const markedCount = students.filter(s =>
-      s.submissions.ta === 'complete' && s.submissions.cie === 'complete'
-    ).length;
+    // Count students who completed all required submissions for their subject
+    const markedCount = students.filter(s => {
+      if (s.subject_type === 'practical') {
+        return s.ta_status === 'completed';
+      } else {
+        const basicComplete = s.ta_status === 'completed' && s.cie_status === 'completed';
+        if (s.defaulter) {
+          return basicComplete && s.defaulter_status === 'completed';
+        }
+        return basicComplete;
+      }
+    }).length;
 
-    const defaulterCount = students.filter(s =>
-      s.submissions.defaulter === 'complete'
+    // Count defaulter students who completed defaulter work
+    const defaulterStudents = students.filter(s => s.defaulter && s.subject_type !== 'practical');
+    const defaulterCount = defaulterStudents.filter(s =>
+      s.defaulter_status === 'completed'
     ).length;
 
     return [
       {
         title: 'Overall Class Analysis',
-        percentage: total > 0 ? Math.round((submittedCount / total) * 100) : 0,
+        percentage: overallPercentage,
         subtitle: 'Submission'
       },
       {
         title: 'Self Taught Subject Analysis',
-        percentage: total > 0 ? Math.round((markedCount / total) * 100) : 0,
+        percentage: Math.round((markedCount / total) * 100),
         subtitle: 'Submission Marked'
       },
       {
         title: 'Defaulters Analysis',
-        percentage: total > 0 ? Math.round((defaulterCount / total) * 100) : 0,
+        percentage: defaulterStudents.length > 0 ? Math.round((defaulterCount / defaulterStudents.length) * 100) : 0,
         subtitle: 'Defaulter Work Submitted'
       }
     ];
@@ -126,12 +176,36 @@ const FacultyDashboard = () => {
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
       let categoryMatch = true;
-      if (filters.category === 'Regular') {
-        categoryMatch = !(student.submissions.ta === 'complete' && student.submissions.cie === 'complete');
+      if (filters.category === 'All' || !filters.category) {
+        // Show all students
+        categoryMatch = true;
+      } else if (filters.category === 'Regular') {
+        // Regular: students who haven't completed all required submissions
+        if (student.subject_type === 'practical') {
+          categoryMatch = student.ta_status !== 'completed';
+        } else {
+          const basicComplete = student.ta_status === 'completed' && student.cie_status === 'completed';
+          if (student.defaulter) {
+            categoryMatch = !(basicComplete && student.defaulter_status === 'completed');
+          } else {
+            categoryMatch = !basicComplete;
+          }
+        }
       } else if (filters.category === 'Defaulter') {
-        categoryMatch = student.submissions.defaulter === 'pending';
+        // Defaulter: students who are defaulters and haven't completed defaulter work (only for theory)
+        categoryMatch = student.defaulter && student.subject_type !== 'practical' && student.defaulter_status !== 'completed';
       } else if (filters.category === 'Completed') {
-        categoryMatch = student.submissions.ta === 'complete' && student.submissions.cie === 'complete';
+        // Completed: students who completed all required submissions
+        if (student.subject_type === 'practical') {
+          categoryMatch = student.ta_status === 'completed';
+        } else {
+          const basicComplete = student.ta_status === 'completed' && student.cie_status === 'completed';
+          if (student.defaulter) {
+            categoryMatch = basicComplete && student.defaulter_status === 'completed';
+          } else {
+            categoryMatch = basicComplete;
+          }
+        }
       }
 
       let subjectMatch = true;
@@ -142,12 +216,6 @@ const FacultyDashboard = () => {
       return categoryMatch && subjectMatch;
     });
   }, [students, filters.category, selectedSubject]);
-
-  const calculateSubmissionPercentage = (student) => {
-    const submissions = Object.values(student.submissions);
-    const completed = submissions.filter(s => s === 'complete').length;
-    return Math.round((completed / submissions.length) * 100);
-  };
 
   const ProgressCircle = ({ percentage, title, subtitle }) => {
     const radius = 35;
@@ -218,7 +286,7 @@ const FacultyDashboard = () => {
         <div className="filter-group">
           <h3>Category Wise Filter</h3>
           <div className="filter-buttons">
-            {['Regular', 'Defaulter', 'Completed'].map(category => (
+            {['All', 'Regular', 'Defaulter', 'Completed'].map(category => (
               <button
                 key={category}
                 className={`filter-btn ${filters.category === category ? 'active' : ''}`}
@@ -267,15 +335,27 @@ const FacultyDashboard = () => {
             {loading ? (
               <tr><td colSpan="5" style={{ textAlign: 'center', padding: 20 }}>Loading…</td></tr>
             ) : filteredStudents.length > 0 ? (
-              filteredStudents.map((student, index) => (
-                <tr key={`${student.id}-${student.subject_id}-${student.batch_id}-${index}`}>
-                  <td>{student.rollNumber}</td>
-                  <td>{student.name}</td>
-                  <td>{student.batch_name || '-'}</td>
-                  <td>{student.subject_code ? `${student.subject_code} - ${student.subject_name}` : '-'}</td>
-                  <td>{calculateSubmissionPercentage(student)}%</td>
-                </tr>
-              ))
+              filteredStudents.map((student, index) => {
+                const percentage = student.submission_percentage || 0;
+                // Debug log for first 3 students
+                if (index < 3) {
+                  console.log(`📊 Table row ${index + 1}:`, {
+                    name: student.name,
+                    subject: student.subject_name,
+                    submission_percentage: student.submission_percentage,
+                    calculated: percentage
+                  });
+                }
+                return (
+                  <tr key={`${student.id}-${student.subject_id}-${student.batch_id}-${index}`}>
+                    <td>{student.rollNumber}</td>
+                    <td>{student.name}</td>
+                    <td>{student.batch_name || '-'}</td>
+                    <td>{student.subject_code ? `${student.subject_code} - ${student.subject_name}` : '-'}</td>
+                    <td>{percentage}%</td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: '#5f6368' }}>
