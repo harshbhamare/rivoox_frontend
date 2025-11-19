@@ -146,10 +146,19 @@ const Dashboard = () => {
 
   // --- Analysis cards (using real data from API) ---
   const analysisData = useMemo(() => {
+    // Calculate overall class analysis as average of all student submission percentages
+    let overallClassPercentage = 0;
+    if (students && students.length > 0) {
+      const totalPercentage = students.reduce((sum, student) => {
+        return sum + (student.submission_percentage || 0);
+      }, 0);
+      overallClassPercentage = Math.round(totalPercentage / students.length);
+    }
+
     return [
       {
         title: 'Overall Class Analysis',
-        percentage: dashboardStats.overallSubmission,
+        percentage: overallClassPercentage,
         subtitle: 'Submission'
       },
       {
@@ -163,7 +172,7 @@ const Dashboard = () => {
         subtitle: 'Defaulter Work Submitted'
       }
     ];
-  }, [dashboardStats]);
+  }, [dashboardStats, students]);
 
   // --- Filters ---
   const filteredStudents = useMemo(() => {
