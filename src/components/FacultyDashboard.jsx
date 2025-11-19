@@ -52,7 +52,6 @@ const FacultyDashboard = () => {
           throw new Error(errorMsg);
         }
 
-        console.log('📊 Raw students data from API:', studentsJson.students?.slice(0, 2));
 
         const mappedStudents = (studentsJson.students || []).map(s => ({
           id: s.id,
@@ -79,16 +78,9 @@ const FacultyDashboard = () => {
           created_at: s.created_at
         }));
 
-        console.log('📊 Mapped students with percentages:', mappedStudents.slice(0, 2));
         
         // Log students with non-zero percentages
         const studentsWithPercentage = mappedStudents.filter(s => s.submission_percentage > 0);
-        console.log('📊 Students with non-zero percentage:', studentsWithPercentage.length);
-        console.log('📊 Sample students with percentage:', studentsWithPercentage.slice(0, 5).map(s => ({
-          name: s.name,
-          subject: s.subject_name,
-          percentage: s.submission_percentage
-        })));
         
         setStudents(mappedStudents);
 
@@ -337,15 +329,7 @@ const FacultyDashboard = () => {
             ) : filteredStudents.length > 0 ? (
               filteredStudents.map((student, index) => {
                 const percentage = student.submission_percentage || 0;
-                // Debug log for first 3 students
-                if (index < 3) {
-                  console.log(`📊 Table row ${index + 1}:`, {
-                    name: student.name,
-                    subject: student.subject_name,
-                    submission_percentage: student.submission_percentage,
-                    calculated: percentage
-                  });
-                }
+                
                 return (
                   <tr key={`${student.id}-${student.subject_id}-${student.batch_id}-${index}`}>
                     <td>{student.rollNumber}</td>
