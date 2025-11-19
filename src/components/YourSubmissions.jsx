@@ -144,9 +144,27 @@ const YourSubmissions = () => {
     });
   };
 
-  const allSubjects = [
-    ...subjects.theory.map(s => ({ ...s, displayName: `${s.name} (Theory)` })),
-    ...subjects.practical.map(s => ({ ...s, displayName: `${s.name} (Practical)` }))
+ const allSubjects = [
+    ...subjects.theory.map(s => ({ 
+      ...s, 
+      displayName: `${s.name} ${s.className ? `- ${s.className}` : ''} (Theory)` 
+    })),
+    ...subjects.practical.flatMap(s => {
+      // If practical subject has batches, create separate entries for each batch
+      if (s.batches && s.batches.length > 0) {
+        return s.batches.map(batch => ({
+          ...s,
+          batch_id: batch.batch_id,
+          batch_name: batch.batch_name,
+          displayName: `${s.name} ${s.className ? `- ${s.className}` : ''} - ${batch.batch_name} (Practical)`
+        }));
+      }
+      // If no batches, show without batch info
+      return [{
+        ...s,
+        displayName: `${s.name} ${s.className ? `- ${s.className}` : ''} (Practical)`
+      }];
+    })
   ];
 
   const StudentCard = ({ student, isExpanded }) => {

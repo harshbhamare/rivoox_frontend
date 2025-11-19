@@ -57,9 +57,12 @@ const SubjectWiseAnalysis = () => {
           </div>
           <div className="card-title-section">
             <h4>{subject.name}</h4>
-            <div className="card-meta">
+             <div className="card-meta">
               <span className="card-code">{subject.code}</span>
               {subject.className && <span className="card-class"> • {subject.className}</span>}
+              {subject.type === 'practical' && subject.batchName && (
+                <span className="card-batch"> • {subject.batchName}</span>
+              )}
             </div>
           </div>
           <span className={`subject-type-badge ${subject.type}`}>
