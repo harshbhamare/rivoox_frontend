@@ -71,7 +71,6 @@ const StudentDashboard = () => {
 
   // Check if student is defaulter to conditionally show defaulter column
   const isDefaulter = studentData?.defaulter;
-  const submissionColumns = isDefaulter ? 3 : 2; // CIE, TA, and optionally Defaulter
 
   return (
     <div className="submission-status">
@@ -102,9 +101,11 @@ const StudentDashboard = () => {
             <tr>
               <th>Subject Code</th>
               <th>Subject Name</th>
-              <th colSpan={submissionColumns}>Submission</th>
+              <th>Subject Type</th>
+              <th colSpan={isDefaulter ? 3 : 2}>Submission</th>
             </tr>
             <tr className="sub-header">
+              <th></th>
               <th></th>
               <th></th>
               <th>CIE</th>
@@ -113,35 +114,49 @@ const StudentDashboard = () => {
             </tr>
           </thead>
           <tbody>
-            {subjects.map((subject, index) => (
-              <tr key={subject.id || index}>
-                <td className="subject-code-cell">{subject.code}</td>
-                <td className="subject-name-cell">
-                  {getAvailabilityDot(subject.facultyAvailable)}
-                  {subject.name}
-                </td>
-                <td className="status-cell">
-                  <span className={`status-badge ${subject.submissions.cie}`}>
-                    {getStatusIcon(subject.submissions.cie)}
-                    {getStatusText(subject.submissions.cie)}
-                  </span>
-                </td>
-                <td className="status-cell">
-                  <span className={`status-badge ${subject.submissions.ta}`}>
-                    {getStatusIcon(subject.submissions.ta)}
-                    {getStatusText(subject.submissions.ta)}
-                  </span>
-                </td>
-                {isDefaulter && (
+            {subjects.map((subject, index) => {
+              const isPractical = subject.type === 'practical';
+              return (
+                <tr key={subject.id || index}>
+                  <td className="subject-code-cell">{subject.code}</td>
+                  <td className="subject-name-cell">
+                    {getAvailabilityDot(subject.facultyAvailable)}
+                    {subject.name}
+                  </td>
+                  <td className="subject-type-cell">
+                    {isPractical ? 'Practical' : 'Theory'}
+                  </td>
                   <td className="status-cell">
-                    <span className={`status-badge ${subject.submissions.defaulter}`}>
-                      {getStatusIcon(subject.submissions.defaulter)}
-                      {getStatusText(subject.submissions.defaulter)}
+                    {isPractical ? (
+                      <span className="status-badge not-applicable">N/A</span>
+                    ) : (
+                      <span className={`status-badge ${subject.submissions.cie}`}>
+                        {getStatusIcon(subject.submissions.cie)}
+                        {getStatusText(subject.submissions.cie)}
+                      </span>
+                    )}
+                  </td>
+                  <td className="status-cell">
+                    <span className={`status-badge ${subject.submissions.ta}`}>
+                      {getStatusIcon(subject.submissions.ta)}
+                      {getStatusText(subject.submissions.ta)}
                     </span>
                   </td>
-                )}
-              </tr>
-            ))}
+                  {isDefaulter && (
+                    <td className="status-cell">
+                      {isPractical ? (
+                        <span className="status-badge not-applicable">N/A</span>
+                      ) : (
+                        <span className={`status-badge ${subject.submissions.defaulter}`}>
+                          {getStatusIcon(subject.submissions.defaulter)}
+                          {getStatusText(subject.submissions.defaulter)}
+                        </span>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
