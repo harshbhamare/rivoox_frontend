@@ -42,7 +42,6 @@ function StudentApp({ user, onLogout }) {
             });
             
             const data = await response.json();
-            console.log('Student dashboard data:', data);
             
             if (data.success) {
                 setStudentData(data.student);
@@ -68,7 +67,6 @@ function StudentApp({ user, onLogout }) {
             });
             
             const data = await response.json();
-            console.log('Defaulter work data:', data);
             
             if (data.success) {
                 setDefaulterWorks(data.defaulterWork);

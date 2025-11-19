@@ -28,7 +28,6 @@ const Subjects = () => {
                 });
                 
                 const data = await response.json();
-                console.log('Student subjects data:', data);
                 
                 if (data.success) {
                     setAllSubjects(data.subjects);

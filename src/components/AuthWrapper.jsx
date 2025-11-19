@@ -160,7 +160,6 @@ const AuthWrapper = () => {
 
   // 🔹 When login is successful
   const handleLogin = (userData) => {
-    console.log('AuthWrapper - handleLogin userData:', userData);
     // Save in localStorage
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);

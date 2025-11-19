@@ -96,8 +96,6 @@ const HODSubjects = () => {
       return;
     }
 
-    console.log('Deleting subject with ID:', id);
-
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE}/api/hod/offered-subjects/${id}`, {
@@ -105,9 +103,7 @@ const HODSubjects = () => {
         headers: getAuthHeaders()
       });
 
-      console.log('Delete response status:', response.status);
       const data = await response.json();
-      console.log('Delete response data:', data);
 
       if (data.success) {
         showMessage('Subject deleted successfully!');
@@ -154,7 +150,6 @@ const HODSubjects = () => {
       year: parseInt(year)
     };
 
-    console.log('Adding subject with payload:', payload);
 
     try {
       setLoading(true);
@@ -164,9 +159,7 @@ const HODSubjects = () => {
         body: JSON.stringify(payload)
       });
 
-      console.log('Response status:', response.status);
       const data = await response.json();
-      console.log('Response data:', data);
 
       if (data.success) {
         showMessage(`${type} subject added successfully!`);

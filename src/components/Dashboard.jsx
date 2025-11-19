@@ -70,7 +70,6 @@ const Dashboard = () => {
           created_at: s.created_at
         }));
 
-        console.log('Mapped students:', mappedStudents);
         setStudents(mappedStudents);
 
         setBatches(batchesJson.batches || []);
@@ -82,13 +81,13 @@ const Dashboard = () => {
             submissionMarked: statsJson.statistics.submissionMarked,
             defaulterWorkSubmitted: statsJson.statistics.defaulterWorkSubmitted
           });
-          console.log('Dashboard statistics:', statsJson.statistics);
+          
         }
 
         // Set availability status
         if (availabilityJson.success) {
           setIsAvailable(availabilityJson.isAvailable);
-          console.log('Availability status:', availabilityJson.isAvailable);
+          
         } else {
           console.warn('Could not fetch availability status:', availabilityJson.error);
           setIsAvailable(false);

@@ -47,7 +47,6 @@ const Login = ({ onLogin, onRegister }) => {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        console.log('Login response user data:', data.user || data.student);
         localStorage.setItem('token', data.token);
         const userData = data.user || data.student;
         localStorage.setItem('user', JSON.stringify(userData));

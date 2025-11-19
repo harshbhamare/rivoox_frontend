@@ -39,7 +39,6 @@ const StudentProfile = () => {
         });
 
         const data = await response.json();
-        console.log('Elective subjects data:', data);
 
         if (data.success) {
           setElectiveSubjects(data.electives);
@@ -52,15 +51,11 @@ const StudentProfile = () => {
           const isLocked = selections.selections_locked === true;
           setSelectionsLocked(isLocked);
 
-          console.log('📚 Current selections from DB:', selections);
-          console.log('🔒 Selections locked:', isLocked);
-
           // Helper to get subject and faculty names
           const getSubjectName = (type, subjectId) => {
             if (!subjectId) return '';
             const subject = data.electives[type]?.find(s => s.id === subjectId);
             const name = subject ? `${subject.code} - ${subject.name}` : '';
-            console.log(`Getting ${type.toUpperCase()} subject name for ID ${subjectId}:`, name);
             return name;
           };
 
@@ -69,7 +64,6 @@ const StudentProfile = () => {
             const subject = data.electives[type]?.find(s => s.id === subjectId);
             const faculty = subject?.faculties?.find(f => f.id === facultyId);
             const name = faculty ? faculty.name : '';
-            console.log(`Getting ${type.toUpperCase()} faculty name for ID ${facultyId}:`, name);
             return name;
           };
 
@@ -95,7 +89,6 @@ const StudentProfile = () => {
             }
           };
 
-          console.log('✅ Setting selected subjects:', newSelections);
           setSelectedSubjects(newSelections);
         } else {
           setError(data.error || 'Failed to load elective subjects');
@@ -160,7 +153,6 @@ const StudentProfile = () => {
       });
 
       const data = await response.json();
-      console.log('Save elective response:', data);
 
       if (data.success) {
         setSuccessMessage(`${type.toUpperCase()} selection saved successfully!`);

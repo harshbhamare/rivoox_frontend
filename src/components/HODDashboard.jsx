@@ -109,11 +109,8 @@ const HODDashboard = ({ user, onLogout }) => {
             });
             const data = await response.json();
 
-            console.log('Class teachers response:', data);
-
             if (data.success) {
                 setClassTeachers(data.teachers || []);
-                console.log('Class teachers set:', data.teachers);
             } else {
                 console.error('Failed to fetch class teachers:', data.error);
                 showMessage(data.error || 'Failed to fetch class teachers');
@@ -231,20 +228,18 @@ const HODDashboard = ({ user, onLogout }) => {
     };
 
     const handleEditClass = (cls) => {
-        console.log('Edit class clicked:', cls);
         setEditingClass(cls);
         setFormData({
             className: cls.name,
             year: cls.year.toString(),
             teacherId: cls.teacher_id || ''
         });
-        console.log('Form data set:', {
-            className: cls.name,
-            year: cls.year.toString(),
-            teacherId: cls.teacher_id || ''
-        });
+        // console.log('Form data set:', {
+        //     className: cls.name,
+        //     year: cls.year.toString(),
+        //     teacherId: cls.teacher_id || ''
+        // });
         setShowEditModal(true);
-        console.log('Edit modal should be visible now');
     };
 
     const handleUpdateClass = async () => {

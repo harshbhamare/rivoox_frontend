@@ -35,7 +35,6 @@ const Header = () => {
           const classInfoData = await classInfoResponse.json();
           if (classInfoData.success) {
             setDivision(classInfoData.class.division);
-            console.log('Division loaded:', classInfoData.class.division);
           }
         }
 
@@ -59,7 +58,6 @@ const Header = () => {
             theory: subjectsData.subjects.theory || [],
             practical: subjectsData.subjects.practical || []
           });
-          console.log('Teacher subjects loaded:', subjectsData.subjects);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -73,7 +71,6 @@ const Header = () => {
 
   // Debug: Log user data
   React.useEffect(() => {
-    console.log('Header - User data:', user);
   }, [user]);
 
   // Helper function to format role display
