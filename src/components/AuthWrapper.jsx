@@ -210,7 +210,7 @@ const AuthWrapper = () => {
       if (user?.role === 'class_teacher') {
         try {
           const token = localStorage.getItem('token');
-          const response = await fetch('http://localhost:3000/api/class-teacher/class-info', {
+          const response = await fetch('https://rivooooox-backnd.vercel.app/api/class-teacher/class-info', {
             headers: { Authorization: `Bearer ${token}` }
           });
           const data = await response.json();
