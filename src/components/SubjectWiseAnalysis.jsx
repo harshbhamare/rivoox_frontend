@@ -43,17 +43,7 @@ const SubjectWiseAnalysis = () => {
   }, [fetchSubjectStatistics]);
 
   const calculateOverallCompletion = (subject) => {
-    const stats = subject.submissionStats || {};
-    let totalSubmissions = 0;
-    let completedSubmissions = 0;
-
-    Object.values(stats).forEach(stat => {
-      totalSubmissions += stat.total;
-      completedSubmissions += stat.completed;
-    });
-
-    if (totalSubmissions === 0) return 0;
-    return Math.round((completedSubmissions / totalSubmissions) * 100);
+    return subject.completionPercentage || 0;
   };
 
   const SubjectCard = ({ subject }) => {
@@ -67,7 +57,10 @@ const SubjectWiseAnalysis = () => {
           </div>
           <div className="card-title-section">
             <h4>{subject.name}</h4>
-            <span className="card-code">{subject.code}</span>
+            <div className="card-meta">
+              <span className="card-code">{subject.code}</span>
+              {subject.className && <span className="card-class"> • {subject.className}</span>}
+            </div>
           </div>
           <span className={`subject-type-badge ${subject.type}`}>
             {subject.type === 'practical' ? 'Practical' : subject.type.toUpperCase()}

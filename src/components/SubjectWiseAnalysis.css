@@ -83,7 +83,15 @@
   overflow: hidden;
 }
 
-.card-code {
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.card-code,
+.card-class {
   display: block;
   font-size: 12px;
   color: #5f6368;
