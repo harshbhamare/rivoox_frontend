@@ -265,7 +265,7 @@ const AuthWrapper = () => {
               Welcome, {user?.name || 'Faculty'}
             </h1>
             <div className="class-info">
-              <span>Faculty Dashboard</span>
+              <span>Class Teacher{division ? ` : ${division}` : ''}</span>
             </div>
           </div>
           <div className="content">
