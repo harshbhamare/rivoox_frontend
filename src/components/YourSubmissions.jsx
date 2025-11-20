@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ChevronDown } from 'lucide-react';
 import './YourSubmissions.css';
 
-const API_BASE = 'https://rivooooox-backnd.vercel.app';
+const API_BASE = 'http://localhost:3000';
 
 const YourSubmissions = () => {
   const [subjects, setSubjects] = useState({ theory: [], practical: [] });
@@ -97,6 +97,21 @@ const YourSubmissions = () => {
     const currentStatus = student?.submissions?.[submissionTypeName] || 'pending';
     const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
     
+    // Optimistically update UI immediately
+    setStudents(prevStudents => 
+      prevStudents.map(s => 
+        s.id === studentId 
+          ? {
+              ...s,
+              submissions: {
+                ...s.submissions,
+                [submissionTypeName]: newStatus
+              }
+            }
+          : s
+      )
+    );
+    
     try {
       const token = localStorage.getItem('token');
       
@@ -118,11 +133,21 @@ const YourSubmissions = () => {
 
       const data = await response.json();
 
-      if (data.success) {
-        showMessage('Submission status updated successfully!');
-        // Refresh students data
-        fetchStudents(selectedSubjectId);
-      } else {
+      if (!data.success) {
+        // Revert on error
+        setStudents(prevStudents => 
+          prevStudents.map(s => 
+            s.id === studentId 
+              ? {
+                  ...s,
+                  submissions: {
+                    ...s.submissions,
+                    [submissionTypeName]: currentStatus
+                  }
+                }
+              : s
+          )
+        );
         throw new Error(data.error || 'Failed to update submission');
       }
     } catch (error) {
@@ -144,7 +169,7 @@ const YourSubmissions = () => {
     });
   };
 
- const allSubjects = [
+  const allSubjects = [
     ...subjects.theory.map(s => ({ 
       ...s, 
       displayName: `${s.name} ${s.className ? `- ${s.className}` : ''} (Theory)` 
@@ -167,53 +192,31 @@ const YourSubmissions = () => {
     })
   ];
 
-  const StudentCard = ({ student, isExpanded }) => {
+  const StudentRow = ({ student, index }) => {
     const applicableTypes = getApplicableTypes(student);
     
     return (
-      <div 
-        className={`student-card ${isExpanded ? 'expanded' : ''}`}
-        onMouseEnter={() => setHoveredStudent(student.id)}
-        onMouseLeave={() => setHoveredStudent(null)}
-      >
-        <div className="student-basic-info">
-          <span className="student-id">{student.roll_no}</span>
-          <span className="student-name">{student.name}</span>
-          <span className="student-subject">Attendance: {student.attendance_percent}%</span>
-          <ChevronDown 
-            className={`expand-icon ${isExpanded ? 'rotated' : ''}`} 
-            size={16} 
-          />
-        </div>
-        
-        {isExpanded && (
-          <div className="student-marks">
-            {applicableTypes.map(type => {
-              const status = student.submissions?.[type.name] || 'pending';
-              
-              return (
-                <div key={type.id} className="mark-section">
-                  <span className="mark-label">Mark for {type.name}</span>
-                  <div className="mark-buttons">
-                    <button 
-                      className={`mark-btn ${status === 'pending' ? 'pending active' : 'pending'}`}
-                      onClick={() => toggleSubmissionStatus(student.id, type.name)}
-                    >
-                      Pending
-                    </button>
-                    <button 
-                      className={`mark-btn ${status === 'completed' ? 'complete active' : 'complete'}`}
-                      onClick={() => toggleSubmissionStatus(student.id, type.name)}
-                    >
-                      Complete
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <tr className="student-row">
+        <td className="student-index">{index + 1}</td>
+        <td className="student-roll">{student.roll_no}</td>
+        <td className="student-name-cell">{student.name}</td>
+        <td className="student-attendance">{student.attendance_percent}%</td>
+        {applicableTypes.map(type => {
+          const status = student.submissions?.[type.name] || 'pending';
+          
+          return (
+            <td key={type.id} className="submission-cell">
+              <button
+                className={`status-toggle-btn ${status}`}
+                onClick={() => toggleSubmissionStatus(student.id, type.name)}
+                title={`Click to mark as ${status === 'completed' ? 'pending' : 'completed'}`}
+              >
+                {status === 'completed' ? '✓' : '○'}
+              </button>
+            </td>
+          );
+        })}
+      </tr>
     );
   };
 
@@ -253,21 +256,43 @@ const YourSubmissions = () => {
       
       {isLoading ? (
         <div className="loading-state">Loading students...</div>
+      ) : filteredStudents.length > 0 ? (
+        <div className="submissions-table-wrapper">
+          <table className="submissions-table">
+            <thead>
+              <tr>
+                <th className="col-index">#</th>
+                <th className="col-roll">Roll No</th>
+                <th className="col-name">Student Name</th>
+                <th className="col-attendance">Attendance</th>
+                {getApplicableTypes(filteredStudents[0] || {}).map(type => (
+                  <th key={type.id} className="col-submission">
+                    {type.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredStudents.map((student, index) => (
+                <StudentRow 
+                  key={`${student.id}-${index}-${student.batch_id || 'no-batch'}`}
+                  student={student}
+                  index={index}
+                />
+              ))}
+            </tbody>
+          </table>
+          <div className="table-footer">
+            <span className="student-count">Total: {filteredStudents.length} students</span>
+            <span className="legend">
+              <span className="legend-item"><span className="legend-icon completed">✓</span> Completed</span>
+              <span className="legend-item"><span className="legend-icon pending">○</span> Pending</span>
+            </span>
+          </div>
+        </div>
       ) : (
-        <div className="students-list">
-          {filteredStudents.length > 0 ? (
-            filteredStudents.map((student, index) => (
-              <StudentCard 
-                key={`${student.id}-${index}-${student.batch_id || 'no-batch'}`}
-                student={student} 
-                isExpanded={hoveredStudent === student.id}
-              />
-            ))
-          ) : (
-            <div className="no-students">
-              <p>{selectedSubjectId ? 'No students found matching your search criteria.' : 'Please select a subject to view students.'}</p>
-            </div>
-          )}
+        <div className="no-students">
+          <p>{selectedSubjectId ? 'No students found matching your search criteria.' : 'Please select a subject to view students.'}</p>
         </div>
       )}
       
