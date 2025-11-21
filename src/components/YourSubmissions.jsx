@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ChevronDown } from 'lucide-react';
 import './YourSubmissions.css';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'https://rivooooox-backnd.vercel.app';
 
 const YourSubmissions = () => {
   const [subjects, setSubjects] = useState({ theory: [], practical: [] });
