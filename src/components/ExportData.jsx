@@ -3,7 +3,7 @@ import { Download, FileSpreadsheet, Loader } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import './ExportData.css';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = 'https://rivooooox-backnd.vercel.app';
 
 const ExportData = () => {
   const [isExporting, setIsExporting] = useState(false);
