@@ -5,6 +5,7 @@ import {
   Users,
   BarChart3,
   AlertTriangle,
+  Download,
   Radio
 } from 'lucide-react';
 import './Sidebar.css';
@@ -40,6 +41,12 @@ const Sidebar = ({ currentView, setCurrentView, userRole }) => {
       label: 'Defaulter Plug',
       icon: AlertTriangle,
       roles: ['class_teacher', 'teacher', 'faculty']
+    },
+    {
+      id: 'export-data',
+      label: 'Export Data',
+      icon: Download,
+      roles: ['class_teacher', 'teacher'] // Only for class teachers
     }
   ];
 

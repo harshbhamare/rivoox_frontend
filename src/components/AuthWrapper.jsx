@@ -12,6 +12,7 @@ import ManageClass from './ManageClass';
 import YourSubmissions from './YourSubmissions';
 import SubjectWiseAnalysis from './SubjectWiseAnalysis';
 import DefaulterPlug from './DefaulterPlug';
+import ExportData from './ExportData';
 import HODDashboard from './HODDashboard';
 import DirectorDashboard from './DirectorDashboard';
 import FacultyDashboard from './FacultyDashboard';
@@ -246,6 +247,7 @@ const AuthWrapper = () => {
             {teacherView === 'manage-class' && <ManageClass />}
             {teacherView === 'subject-analysis' && <SubjectWiseAnalysis />}
             {teacherView === 'defaulter-plug' && <DefaulterPlug />}
+            {teacherView === 'export-data' && <ExportData />}
           </div>
         </div>
       </div>
