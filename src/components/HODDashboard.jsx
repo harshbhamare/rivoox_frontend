@@ -37,6 +37,11 @@ const HODDashboard = ({ user, onLogout }) => {
 
     const [showSnackbar, setShowSnackbar] = useState(false);
     const [snackbarMessage, setSnackbarMessage] = useState('');
+    const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+    const [selectedFaculty, setSelectedFaculty] = useState(null);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [resettingPassword, setResettingPassword] = useState(false);
 
     // HOD Profile State
     const [hodProfile, setHodProfile] = useState({
@@ -337,6 +342,69 @@ const HODDashboard = ({ user, onLogout }) => {
             showMessage('Faculty updated successfully!');
         } else {
             showMessage('Please fill required fields (Name, Department, Email)');
+        }
+    };
+
+     // Reset Password Handler
+    const handleResetPassword = (faculty) => {
+        setSelectedFaculty(faculty);
+        setNewPassword('');
+        setConfirmPassword('');
+        setShowResetPasswordModal(true);
+    };
+
+    const confirmResetPassword = async () => {
+        if (!newPassword || !confirmPassword) {
+            showMessage('Please enter both password fields');
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            showMessage('Password must be at least 6 characters long');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            showMessage('Passwords do not match');
+            return;
+        }
+
+        if (!window.confirm(`Are you sure you want to reset password for ${selectedFaculty.name}?`)) {
+            return;
+        }
+
+        try {
+            setResettingPassword(true);
+            const token = localStorage.getItem('token');
+
+            const response = await fetch(`${API_BASE}/api/hod/reset-faculty-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    faculty_id: selectedFaculty.id,
+                    new_password: newPassword
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showMessage(`Password reset successfully for ${selectedFaculty.name}`);
+                setShowResetPasswordModal(false);
+                setSelectedFaculty(null);
+                setNewPassword('');
+                setConfirmPassword('');
+            } else {
+                showMessage(data.error || 'Failed to reset password');
+            }
+        } catch (error) {
+            console.error('Error resetting password:', error);
+            showMessage('Failed to reset password');
+        } finally {
+            setResettingPassword(false);
         }
     };
 
@@ -690,6 +758,7 @@ const HODDashboard = ({ user, onLogout }) => {
                                             <th>Faculty Name</th>
                                             <th>Email</th>
                                             <th>Role</th>
+                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -715,6 +784,15 @@ const HODDashboard = ({ user, onLogout }) => {
                                                             faculty.role === 'hod' ? 'HOD' :
                                                                 faculty.role === 'faculty' ? 'Faculty' :
                                                                     faculty.role}
+                                                    </td>
+                                                     <td>
+                                                        <button
+                                                            className="hod-reset-password-btn"
+                                                            onClick={() => handleResetPassword(faculty)}
+                                                            title="Reset Password"
+                                                        >
+                                                            Reset Password
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             ))
@@ -1015,6 +1093,70 @@ const HODDashboard = ({ user, onLogout }) => {
                     </div>
                 )}
             </div>
+
+             {/* Reset Password Modal */}
+            {showResetPasswordModal && (
+                <div className="hod-modal-overlay" onClick={(e) => {
+                    if (e.target.className === 'hod-modal-overlay') {
+                        setShowResetPasswordModal(false);
+                        setSelectedFaculty(null);
+                        setNewPassword('');
+                        setConfirmPassword('');
+                    }
+                }}>
+                    <div className="hod-modal-content">
+                        <div className="hod-modal-header">
+                            <h3>Reset Password</h3>
+                        </div>
+                        <div className="hod-modal-body">
+                            <p style={{ marginBottom: '20px', color: '#5f6368' }}>
+                                Reset password for: <strong>{selectedFaculty?.name}</strong>
+                            </p>
+                            <div className="hod-form-group">
+                                <label>New Password</label>
+                                <input
+                                    type="password"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    placeholder="Enter new password (min 6 characters)"
+                                    className="hod-form-input"
+                                />
+                            </div>
+                            <div className="hod-form-group">
+                                <label>Confirm Password</label>
+                                <input
+                                    type="password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder="Confirm new password"
+                                    className="hod-form-input"
+                                />
+                            </div>
+                        </div>
+                        <div className="hod-modal-footer">
+                            <button
+                                className="hod-btn-secondary"
+                                onClick={() => {
+                                    setShowResetPasswordModal(false);
+                                    setSelectedFaculty(null);
+                                    setNewPassword('');
+                                    setConfirmPassword('');
+                                }}
+                                disabled={resettingPassword}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="hod-btn-primary"
+                                onClick={confirmResetPassword}
+                                disabled={resettingPassword}
+                            >
+                                {resettingPassword ? 'Resetting...' : 'Reset Password'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Snackbar */}
             {showSnackbar && (
